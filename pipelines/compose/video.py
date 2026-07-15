@@ -188,7 +188,7 @@ def assemble_final(
             # Smart retime: prefer mild slowdown over long freeze (looks less broken).
             max_slow = 1.55  # cap stretch
             if pad < 0.08:
-                vf = f"scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"
+                vf = "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"
                 cmd = [
                     "ffmpeg", "-y", "-i", str(src_video),
                     "-vf", vf, "-t", f"{dur:.2f}",
@@ -233,11 +233,9 @@ def assemble_final(
         if audio and audio.exists():
             muxed = clips_dir / f"scene_{i+1:02d}.mp4"
             if srt and burn_subs:
-                # re-encode with burned Chinese subtitles
-                font = _cjk_fontfile() or "/System/Library/Fonts/Hiragino Sans GB.ttc"
-                # escape path for subtitles filter
+                # re-encode with burned Chinese subtitles (FontName via force_style)
+                _ = _cjk_fontfile()  # ensure CJK font present on host; libass picks by FontName
                 sp = str(srt.resolve()).replace("\\", "/").replace(":", "\\:")
-                fp = font.replace("\\", "/").replace(":", "\\:")
                 vf = (
                     f"subtitles='{sp}':force_style="
                     f"'FontName=Hiragino Sans GB,FontSize=18,PrimaryColour=&H00E8EEF7&,"

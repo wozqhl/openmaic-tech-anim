@@ -172,7 +172,8 @@ def cmd_gen(args: argparse.Namespace) -> int:
     print(f"\nDone → {job_dir}")
     if getattr(args, "compose", False):
         print("\n[compose] auto after gen ...")
-        class _A: pass
+        class _A:
+            pass
         a = _A()
         a.job = str(job_dir)
         a.max_scenes = int(getattr(args, "max_scenes", 0) or 0)

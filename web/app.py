@@ -9,7 +9,6 @@ Open:
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import subprocess
@@ -19,10 +18,10 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[1]
