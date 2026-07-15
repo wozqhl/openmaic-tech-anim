@@ -30,7 +30,8 @@ make web   # http://localhost:8765
 
 1. 在 `templates/manim/` 添加 `*_explainer.py`（6 个 Scene 类）
 2. 添加对齐的 `*_vo.json`（字符串数组，顺序=场景序）
-3. 在 `pipelines/cli.py` 的 `TOPIC_TEMPLATES` 注册关键词
+3. （可选）添加 `*_storyboard.json`：每场 `{tag,t0,t1}` 时间比例
+4. 在 `pipelines/cli.py` 的 `TOPIC_TEMPLATES` 注册关键词（三元组 script, vo, storyboard）
 
 ## PR 要求
 

@@ -192,20 +192,31 @@ python -m pipelines.cli gen "Diffusion model" --compose --with-manim --beats
 3. 烧录中文字幕；统一 1280×720 重编码
 
 
+
 ## 精品主题模板
 
-关键词命中时自动套用 Manim + 旁白稿：
+关键词命中时自动套用 Manim + 旁白 + 分镜：
 
 | 关键词 | 模板 |
 |--------|------|
-| diffusion / 扩散 | `templates/manim/diffusion_explainer.py` |
-| attention / transformer / 注意力 | `templates/manim/attention_explainer.py` |
-| tcp / 三次握手 / SYN | `templates/manim/tcp_handshake.py` |
+| diffusion / 扩散 | `diffusion_explainer` |
+| attention / transformer / 注意力 | `attention_explainer` |
+| tcp / 三次握手 / SYN | `tcp_handshake` |
+| http2 / 多路复用 | `http2_mux` |
+| kv cache / KV 缓存 | `kv_cache` |
 
-通用主题会用增强版自动 Manim（流程/时序/对比/踩坑分型）+ 自动 VO JSON。
+通用主题使用增强版自动 Manim（流程/时序/对比/踩坑）+ 自动 VO。
+
+## 成片质量链路
 
 ```bash
-python -m pipelines.cli gen "TCP三次握手" --with-manim --compose --beats
+# 推荐（分句 TTS + 分镜卡点 + 字幕 + 转场）
+python -m pipelines.cli gen "KV Cache" --with-manim --compose --beats
+
+# 已有 job 重合成
+python -m pipelines.cli compose output/<job> --beats
 ```
 
-详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+- **beats**: 分句旁白 + SRT
+- **storyboard**: 每句 VO 映射到 Manim 时间片（`manim/storyboard.json`）
+- **xfade**: 场景间淡入淡出

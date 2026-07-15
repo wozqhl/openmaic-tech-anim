@@ -1,0 +1,29 @@
+{
+  "Scene1_Hook": [
+    {"tag": "clear", "t0": 0.0, "t1": 0.35},
+    {"tag": "noise", "t0": 0.35, "t1": 0.7},
+    {"tag": "denoise", "t0": 0.7, "t1": 1.0}
+  ],
+  "Scene2_Geometry": [
+    {"tag": "data", "t0": 0.0, "t1": 0.3},
+    {"tag": "forward", "t0": 0.3, "t1": 0.65},
+    {"tag": "reverse", "t0": 0.65, "t1": 1.0}
+  ],
+  "Scene3_DenoiseSteps": [
+    {"tag": "axis", "t0": 0.0, "t1": 0.25},
+    {"tag": "steps", "t0": 0.25, "t1": 0.85},
+    {"tag": "note", "t0": 0.85, "t1": 1.0}
+  ],
+  "Scene4_Compare": [
+    {"tag": "cols", "t0": 0.0, "t1": 0.75},
+    {"tag": "pick", "t0": 0.75, "t1": 1.0}
+  ],
+  "Scene5_Latent": [
+    {"tag": "pipeline", "t0": 0.0, "t1": 0.7},
+    {"tag": "cond", "t0": 0.7, "t1": 1.0}
+  ],
+  "Scene6_Pitfalls": [
+    {"tag": "sliders", "t0": 0.0, "t1": 0.65},
+    {"tag": "balance", "t0": 0.65, "t1": 1.0}
+  ]
+}

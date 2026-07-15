@@ -1,0 +1,27 @@
+{
+  "Scene1_Hook": [
+    {"tag": "tokens", "t0": 0.0, "t1": 0.55},
+    {"tag": "pain", "t0": 0.55, "t1": 1.0}
+  ],
+  "Scene2_WhatIsKV": [
+    {"tag": "k", "t0": 0.0, "t1": 0.5},
+    {"tag": "v", "t0": 0.5, "t1": 1.0}
+  ],
+  "Scene3_CacheHit": [
+    {"tag": "cache", "t0": 0.0, "t1": 0.55},
+    {"tag": "append", "t0": 0.55, "t1": 1.0}
+  ],
+  "Scene4_Complexity": [
+    {"tag": "no", "t0": 0.0, "t1": 0.35},
+    {"tag": "yes", "t0": 0.35, "t1": 0.7},
+    {"tag": "mem", "t0": 0.7, "t1": 1.0}
+  ],
+  "Scene5_Paged": [
+    {"tag": "cards", "t0": 0.0, "t1": 1.0}
+  ],
+  "Scene6_Pitfalls": [
+    {"tag": "oom", "t0": 0.0, "t1": 0.4},
+    {"tag": "wrong", "t0": 0.4, "t1": 0.7},
+    {"tag": "batch", "t0": 0.7, "t1": 1.0}
+  ]
+}

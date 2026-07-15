@@ -1,0 +1,30 @@
+{
+  "Scene1_Hook": [
+    {"tag": "title", "t0": 0.0, "t1": 0.35},
+    {"tag": "queue", "t0": 0.35, "t1": 0.75},
+    {"tag": "block", "t0": 0.75, "t1": 1.0}
+  ],
+  "Scene2_Streams": [
+    {"tag": "pipe", "t0": 0.0, "t1": 0.4},
+    {"tag": "streams", "t0": 0.4, "t1": 1.0}
+  ],
+  "Scene3_Frames": [
+    {"tag": "title", "t0": 0.0, "t1": 0.3},
+    {"tag": "frames", "t0": 0.3, "t1": 0.75},
+    {"tag": "note", "t0": 0.75, "t1": 1.0}
+  ],
+  "Scene4_HPACK": [
+    {"tag": "big", "t0": 0.0, "t1": 0.45},
+    {"tag": "small", "t0": 0.45, "t1": 1.0}
+  ],
+  "Scene5_ServerPush": [
+    {"tag": "ideal", "t0": 0.0, "t1": 0.35},
+    {"tag": "reality", "t0": 0.35, "t1": 0.7},
+    {"tag": "takeaway", "t0": 0.7, "t1": 1.0}
+  ],
+  "Scene6_Pitfalls": [
+    {"tag": "tcp", "t0": 0.0, "t1": 0.4},
+    {"tag": "prio", "t0": 0.4, "t1": 0.7},
+    {"tag": "debug", "t0": 0.7, "t1": 1.0}
+  ]
+}

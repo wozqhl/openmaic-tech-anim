@@ -11,45 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff
-
       - name: Ruff check
-        run: |
-          # E402: cli.py inserts ROOT into sys.path before local imports (intentional)
-          ruff check pipelines web scripts \
-            --select E,F,W \
-            --ignore E501,E402
-
+        run: ruff check pipelines web scripts --select E,F,W --ignore E501,E402
       - name: Compile / import smoke
-        env:
-          OPENMAIC_BASE_URL: http://127.0.0.1:3000
         run: |
           python -m compileall -q pipelines web
           python -c "from pipelines.compose.video import find_manim_clips, assemble_final"
           python -c "from pipelines.compose.beats import split_beats; b=split_beats('第一句足够长的旁白文本内容。第二句也足够长不会被合并。'); assert len(b)>=2, b"
+          python -c "from pipelines.compose.storyboard import equal_slices; assert len(equal_slices(3))==3"
           python -c "from pipelines.manim.generator import generate_manim_project"
           python -m pipelines.cli -h >/dev/null
-
       - name: Guard secrets in tree
         run: |
-          set -e
-          # fail if accidental secret-looking files are tracked
           if git ls-files | grep -E '(^|/)\.env$|\.pem$|id_rsa|credentials\.json'; then
-            echo "Refusing: secret-like paths are tracked"
-            git ls-files | grep -E '(^|/)\.env$|\.pem$|id_rsa|credentials\.json' || true
-            exit 1
+            echo "Refusing: secret-like paths tracked"; exit 1
           fi
           echo "secret path guard OK"

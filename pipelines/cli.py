@@ -53,30 +53,40 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 
 
+# (script, vo_json, optional storyboard_json)
 TOPIC_TEMPLATES = {
-    "diffusion": ("templates/manim/diffusion_explainer.py", "templates/manim/diffusion_vo.json"),
-    "扩散": ("templates/manim/diffusion_explainer.py", "templates/manim/diffusion_vo.json"),
-    "attention": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
-    "transformer": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
-    "注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
-    "自注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
-    "tcp": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
-    "三次握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
-    "握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
-    "syn": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
+    "diffusion": ("templates/manim/diffusion_explainer.py", "templates/manim/diffusion_vo.json", "templates/manim/diffusion_storyboard.json"),
+    "扩散": ("templates/manim/diffusion_explainer.py", "templates/manim/diffusion_vo.json", "templates/manim/diffusion_storyboard.json"),
+    "attention": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json", "templates/manim/attention_storyboard.json"),
+    "transformer": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json", "templates/manim/attention_storyboard.json"),
+    "注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json", "templates/manim/attention_storyboard.json"),
+    "自注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json", "templates/manim/attention_storyboard.json"),
+    "tcp": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json", None),
+    "三次握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json", None),
+    "握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json", None),
+    "syn": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json", None),
+    "http2": ("templates/manim/http2_mux.py", "templates/manim/http2_mux_vo.json", "templates/manim/http2_mux_storyboard.json"),
+    "http/2": ("templates/manim/http2_mux.py", "templates/manim/http2_mux_vo.json", "templates/manim/http2_mux_storyboard.json"),
+    "多路复用": ("templates/manim/http2_mux.py", "templates/manim/http2_mux_vo.json", "templates/manim/http2_mux_storyboard.json"),
+    "kv cache": ("templates/manim/kv_cache.py", "templates/manim/kv_cache_vo.json", "templates/manim/kv_cache_storyboard.json"),
+    "kvcache": ("templates/manim/kv_cache.py", "templates/manim/kv_cache_vo.json", "templates/manim/kv_cache_storyboard.json"),
+    "kv 缓存": ("templates/manim/kv_cache.py", "templates/manim/kv_cache_vo.json", "templates/manim/kv_cache_storyboard.json"),
+    "缓存": ("templates/manim/kv_cache.py", "templates/manim/kv_cache_vo.json", "templates/manim/kv_cache_storyboard.json"),
 }
 
 
 def _maybe_apply_topic_template(topic: str, job_dir: Path) -> None:
-    """Copy curated Manim + VO for known topics."""
+    """Copy curated Manim + VO (+ optional storyboard) for known topics."""
     import shutil
     low = topic.lower()
     for key, pack in TOPIC_TEMPLATES.items():
         if key in low or key in topic:
             if isinstance(pack, tuple):
-                script_rel, vo_rel = pack
+                script_rel = pack[0]
+                vo_rel = pack[1] if len(pack) > 1 else None
+                sb_rel = pack[2] if len(pack) > 2 else None
             else:
-                script_rel, vo_rel = pack, None
+                script_rel, vo_rel, sb_rel = pack, None, None
             src = ROOT / script_rel
             if not src.exists():
                 continue
@@ -87,8 +97,11 @@ def _maybe_apply_topic_template(topic: str, job_dir: Path) -> None:
                 vo_src = ROOT / vo_rel
                 if vo_src.exists():
                     shutil.copy2(vo_src, dest_dir / vo_src.name)
-                    # also standard name for compose discovery
                     shutil.copy2(vo_src, dest_dir / "topic_vo.json")
+            if sb_rel:
+                sb_src = ROOT / sb_rel
+                if sb_src.exists():
+                    shutil.copy2(sb_src, dest_dir / "storyboard.json")
             print(f"     applied topic template: {script_rel}")
             return
 
@@ -355,8 +368,25 @@ def cmd_compose(args: argparse.Namespace) -> int:
         render_manim_job(job, quality=q, max_scenes=args.max_scenes or 0)
 
     vo_scripts = None
-    vo_json = getattr(args, "vo_json", None) or (job / "manim" / "diffusion_vo.json")
-    if Path(vo_json).exists():
+    vo_json = getattr(args, "vo_json", None)
+    if not vo_json:
+        # Prefer standardized topic_vo, then any curated *_vo.json
+        cands = [
+            job / "manim" / "topic_vo.json",
+            job / "manim" / "diffusion_vo.json",
+            job / "manim" / "attention_vo.json",
+            job / "manim" / "tcp_handshake_vo.json",
+            job / "manim" / "http2_mux_vo.json",
+            job / "manim" / "kv_cache_vo.json",
+        ]
+        manim_dir = job / "manim"
+        if manim_dir.exists():
+            cands.extend(sorted(manim_dir.glob("*_vo.json")))
+        for c in cands:
+            if Path(c).exists():
+                vo_json = c
+                break
+    if vo_json and Path(vo_json).exists():
         raw = json.loads(Path(vo_json).read_text(encoding="utf-8"))
         # preserve scene order by sorted keys Scene1.. or list values in order
         if isinstance(raw, list):
@@ -369,12 +399,25 @@ def cmd_compose(args: argparse.Namespace) -> int:
             keys = sorted(raw.keys(), key=sk)
             vo_scripts = [raw[k] for k in keys]
         print(f"     using VO scripts from {vo_json} ({len(vo_scripts or [])})")
+    else:
+        # Fallback: build VO from outlines so beats/storyboard still work
+        try:
+            vo_scripts = outlines_to_vo_scripts(outlines)
+            print(f"     auto VO from outlines ({len(vo_scripts)} scenes)")
+        except Exception as e:
+            print(f"     VO fallback skipped: {e}")
     srt_paths = None
+    beat_rows = None
     print(f"[1/3] TTS ({provider}/{voice}) for {len(outlines)} scenes ...")
     try:
-        if getattr(args, "beats", False) and vo_scripts:
+        # Prefer beat mode when VO scripts exist (better A/V + subtitles)
+        use_beats = bool(getattr(args, "beats", False)) or bool(vo_scripts)
+        if use_beats and vo_scripts:
             from pipelines.compose.beats import synthesize_beats
             print("     mode=beat-aligned (sentence TTS + SRT)")
+            # Align VO length to outline scenes
+            if len(vo_scripts) > len(outlines):
+                vo_scripts = vo_scripts[: len(outlines)]
             beat_rows = synthesize_beats(
                 vo_scripts,
                 job / "audio",
@@ -400,6 +443,9 @@ def cmd_compose(args: argparse.Namespace) -> int:
 
     print("[2/3] Assemble video clips + mux audio ...")
     try:
+        use_sb = (not bool(getattr(args, "no_storyboard", False))) and bool(
+            getattr(args, "storyboard", True)
+        )
         final = assemble_final(
             outlines=outlines,
             audio_paths=audio_paths,
@@ -408,6 +454,9 @@ def cmd_compose(args: argparse.Namespace) -> int:
             final_name="final.mp4",
             srt_paths=srt_paths,
             burn_subs=bool(getattr(args, "subs", True)),
+            beat_rows=beat_rows,  # pass whenever synthesized
+            storyboard_path=job / "manim" / "storyboard.json",
+            use_storyboard=use_sb,
         )
     except Exception as e:
         print(f"compose failed: {e}", file=sys.stderr)

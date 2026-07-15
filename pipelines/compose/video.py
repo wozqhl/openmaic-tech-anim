@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -126,17 +127,25 @@ def mux_av(video: Path, audio: Path, out: Path) -> Path:
 
 
 def find_manim_clips(manim_dir: Path) -> list[Path]:
-    """Prefer final Scene*.mp4 under manim/media, exclude partial_movie_files."""
+    """Prefer final Scene*.mp4 under manim/media, exclude partials and stale clips."""
     if not manim_dir.exists():
         return []
+    # Preferred class names from script.py
+    names: list[str] = []
+    script = manim_dir / "script.py"
+    if script.exists():
+        names = re.findall(r"^class\s+(Scene\w+)\s*\(", script.read_text(encoding="utf-8"), re.M)
     candidates: list[Path] = []
     for c in manim_dir.rglob("*.mp4"):
         if "partial_movie_files" in c.parts:
             continue
-        # skip intermediate duplicates deep under videos/ when flat media/Scene exists
         candidates.append(c)
-    # Prefer flat media/Scene*.mp4
     flat = [c for c in candidates if c.parent.name == "media" and c.name.startswith("Scene")]
+    if names and flat:
+        by = {c.stem: c for c in flat}
+        ordered = [by[n] for n in names if n in by]
+        if ordered:
+            return ordered
     if flat:
         return sorted(flat, key=lambda p: p.name)
     # next: **/480p*/Scene*.mp4 (or 720p etc.) finals only
@@ -160,11 +169,20 @@ def assemble_final(
     srt_paths: list[Path] | None = None,
     burn_subs: bool = True,
     crossfade: float = 0.35,
+    beat_rows: list[dict] | None = None,
+    storyboard_path: Path | None = None,
+    use_storyboard: bool = True,
 ) -> Path:
     work_dir.mkdir(parents=True, exist_ok=True)
     clips_dir = work_dir / "clips"
     clips_dir.mkdir(exist_ok=True)
     manim_clips = find_manim_clips(manim_dir) if manim_dir else []
+    from pipelines.compose.storyboard import (
+        load_storyboard,
+        assemble_scene_storyboard,
+        resolve_scene_storyboard,
+    )
+    board = load_storyboard(storyboard_path) if use_storyboard else {}
 
     scene_files: list[Path] = []
     for i, o in enumerate(outlines):
@@ -178,6 +196,35 @@ def assemble_final(
 
         slide = clips_dir / f"slide_{i+1:02d}.mp4"
         src_video = manim_clips[i] if i < len(manim_clips) else None
+
+        # Storyboard path: per-beat visual slices aligned to VO beats
+        if (
+            use_storyboard
+            and src_video
+            and src_video.exists()
+            and beat_rows
+            and i < len(beat_rows)
+            and beat_rows[i].get("beats")
+            and audio
+        ):
+            srt = Path(srt_paths[i]) if srt_paths and i < len(srt_paths) and srt_paths[i] else None
+            slices = resolve_scene_storyboard(board, src_video, len(beat_rows[i]["beats"]))
+            try:
+                muxed = assemble_scene_storyboard(
+                    manim_clip=src_video,
+                    beat_timeline=beat_rows[i]["beats"],
+                    scene_audio=audio,
+                    work_dir=clips_dir / "storyboard",
+                    scene_idx=i + 1,
+                    storyboard_slices=slices,
+                    srt_path=srt,
+                    burn_subs=burn_subs,
+                )
+                scene_files.append(muxed)
+                print(f"  storyboard scene {i+1}: {len(beat_rows[i]['beats'])} beats → {muxed.name}")
+                continue
+            except Exception as e:
+                print(f"  storyboard scene {i+1} failed ({e}); fallback retime")
         srt = None
         if srt_paths and i < len(srt_paths) and srt_paths[i] and Path(srt_paths[i]).exists():
             srt = Path(srt_paths[i])
@@ -309,6 +356,7 @@ def assemble_final(
         "burn_subs": bool(burn_subs and srt_paths),
         "crossfade": crossfade if used_xfade else 0,
         "xfade": used_xfade,
+        "storyboard": bool(use_storyboard and beat_rows),
     }
     (work_dir / "compose_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"

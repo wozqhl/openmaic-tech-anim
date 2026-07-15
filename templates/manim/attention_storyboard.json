@@ -1,0 +1,27 @@
+{
+  "Scene1_Hook": [
+    {"tag": "title", "t0": 0.0, "t1": 0.4},
+    {"tag": "words", "t0": 0.4, "t1": 0.75},
+    {"tag": "attend", "t0": 0.75, "t1": 1.0}
+  ],
+  "Scene2_QKV": [
+    {"tag": "cards", "t0": 0.0, "t1": 0.75},
+    {"tag": "formula", "t0": 0.75, "t1": 1.0}
+  ],
+  "Scene3_Matrix": [
+    {"tag": "grid", "t0": 0.0, "t1": 0.65},
+    {"tag": "row", "t0": 0.65, "t1": 1.0}
+  ],
+  "Scene4_MultiHead": [
+    {"tag": "heads", "t0": 0.0, "t1": 0.6},
+    {"tag": "merge", "t0": 0.6, "t1": 1.0}
+  ],
+  "Scene5_Stack": [
+    {"tag": "layers", "t0": 0.0, "t1": 0.8},
+    {"tag": "note", "t0": 0.8, "t1": 1.0}
+  ],
+  "Scene6_Pitfalls": [
+    {"tag": "items", "t0": 0.0, "t1": 0.75},
+    {"tag": "tip", "t0": 0.75, "t1": 1.0}
+  ]
+}
