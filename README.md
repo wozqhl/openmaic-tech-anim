@@ -190,3 +190,22 @@ python -m pipelines.cli gen "Diffusion model" --compose --with-manim --beats
 1. 旁白按句切分 → 逐句豆包 TTS → 合并并生成 SRT
 2. Manim 画面优先 **慢放到匹配音长**（上限 1.55×），不足再定格尾帧
 3. 烧录中文字幕；统一 1280×720 重编码
+
+
+## 精品主题模板
+
+关键词命中时自动套用 Manim + 旁白稿：
+
+| 关键词 | 模板 |
+|--------|------|
+| diffusion / 扩散 | `templates/manim/diffusion_explainer.py` |
+| attention / transformer / 注意力 | `templates/manim/attention_explainer.py` |
+| tcp / 三次握手 / SYN | `templates/manim/tcp_handshake.py` |
+
+通用主题会用增强版自动 Manim（流程/时序/对比/踩坑分型）+ 自动 VO JSON。
+
+```bash
+python -m pipelines.cli gen "TCP三次握手" --with-manim --compose --beats
+```
+
+详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。

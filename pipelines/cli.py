@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 
 from pipelines.classroom.client import OpenMAICClient
 from pipelines.classroom.offline import offline_outlines
-from pipelines.manim.generator import generate_manim_project
+from pipelines.manim.generator import generate_manim_project, outlines_to_vo_scripts
 from pipelines.compose.narration import write_narration
 from pipelines.simulations.catalog import (
     list_templates,
@@ -60,6 +60,10 @@ TOPIC_TEMPLATES = {
     "transformer": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
     "注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
     "自注意力": ("templates/manim/attention_explainer.py", "templates/manim/attention_vo.json"),
+    "tcp": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
+    "三次握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
+    "握手": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
+    "syn": ("templates/manim/tcp_handshake.py", "templates/manim/tcp_handshake_vo.json"),
 }
 
 
@@ -139,6 +143,15 @@ def cmd_gen(args: argparse.Namespace) -> int:
     )
     print(f"     {script}")
     _maybe_apply_topic_template(topic, job_dir)
+    # Auto VO scripts for beat-aligned compose (curated topic_vo wins if present)
+    vo_path = job_dir / "manim" / "topic_vo.json"
+    if not vo_path.exists():
+        try:
+            vos = outlines_to_vo_scripts(outlines)
+            vo_path.write_text(json.dumps(vos, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(f"     auto VO → {vo_path} ({len(vos)} scenes)")
+        except Exception as e:
+            print(f"     auto VO skipped: {e}")
 
     print("[5/6] Narration ...")
     nar = write_narration(
@@ -177,6 +190,9 @@ def cmd_gen(args: argparse.Namespace) -> int:
         a = _A()
         a.job = str(job_dir)
         a.max_scenes = int(getattr(args, "max_scenes", 0) or 0)
+        a.beats = bool(getattr(args, "beats", False))
+        a.no_subs = False
+        a.vo_json = None
         a.voice = None
         a.tts_provider = None
         a.with_manim = bool(getattr(args, "with_manim", False))
@@ -422,6 +438,7 @@ def main(argv: list[str] | None = None) -> int:
     p_gen.add_argument("--style", default="tech-explainer")
     p_gen.add_argument("--output")
     p_gen.add_argument("--offline", action="store_true", help="Skip LLM; use template outlines")
+    p_gen.add_argument("--beats", action="store_true", help="After gen compose with sentence TTS + subs")
     p_gen.add_argument("--compose", action="store_true", help="After gen, run TTS+video compose")
     p_gen.add_argument("--max-scenes", type=int, default=0, help="With --compose: limit scenes (0=all)")
     p_gen.add_argument("--with-manim", action="store_true", help="With --compose: also render Manim")

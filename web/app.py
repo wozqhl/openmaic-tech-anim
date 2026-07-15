@@ -105,13 +105,15 @@ def _run_job(job_id: str, body: CreateJob) -> None:
         _update(job_id, job_dir=str(out_dir), step="gen_done", message="大纲已生成")
 
         if body.compose:
-            _update(job_id, step="compose", message="豆包 TTS + 合成视频…")
+            _update(job_id, step="compose", message="豆包 TTS + 合成视频（分句旁白+字幕）…")
             ccmd = [
                 str(ROOT / ".venv/bin/python"),
                 "-m",
                 "pipelines.cli",
                 "compose",
                 str(out_dir),
+                "--beats",
+                "--with-manim",
             ]
             if body.max_scenes and body.max_scenes > 0:
                 ccmd.extend(["--max-scenes", str(body.max_scenes)])
@@ -146,7 +148,7 @@ def _run_job(job_id: str, body: CreateJob) -> None:
                 job_id,
                 status="done",
                 step="done",
-                message="gen 完成（未合成视频）",
+                message="gen 完成（未合成视频（分句旁白+字幕））",
                 log=(proc.stdout or "")[-2000:],
             )
     except subprocess.TimeoutExpired:
