@@ -147,7 +147,7 @@ def cmd_gen(args: argparse.Namespace) -> int:
     vo_path = job_dir / "manim" / "topic_vo.json"
     if not vo_path.exists():
         try:
-            vos = outlines_to_vo_scripts(outlines)
+            vos = outlines_to_vo_scripts(result.get("outlines") or [])
             vo_path.write_text(json.dumps(vos, ensure_ascii=False, indent=2), encoding="utf-8")
             print(f"     auto VO → {vo_path} ({len(vos)} scenes)")
         except Exception as e:
