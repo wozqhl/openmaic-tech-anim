@@ -82,13 +82,15 @@ def _slice_retime(
     end = max(start + 0.05, min(t1, vdur))
     seg = max(end - start, 0.05)
     target_dur = max(target_dur, 0.2)
-    factor = seg / target_dur
-    # trim then setpts
+    # setpts multiplier >1 slows video to fill target_dur
+    factor = min(target_dur / seg, 8.0)
+    pad = max(0.0, target_dur - seg * factor)
     vf = (
         f"trim=start={start:.3f}:end={end:.3f},setpts=PTS-STARTPTS,"
         f"setpts=PTS*{factor:.4f},"
         f"scale=1280:720:force_original_aspect_ratio=decrease,"
-        f"pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30"
+        f"pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,"
+        f"tpad=stop_mode=clone:stop_duration={pad:.3f}"
     )
     _run(
         [
