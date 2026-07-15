@@ -1,0 +1,61 @@
+name: Bug report
+description: 报告功能异常或崩溃
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请尽量附上可复现步骤。**不要粘贴 API Key / Token / `.env` 内容。**
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题摘要
+      description: 一句话描述发生了什么
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从命令或 Web 操作开始
+      placeholder: |
+        1. python -m pipelines.cli gen "..."
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 可贴终端输出（脱敏后）
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响模块
+      options:
+        - CLI gen/plan
+        - Manim render
+        - TTS / compose
+        - Web UI
+        - OpenMAIC 对接
+        - 仿真模板
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: macOS 版本 / Python 版本 / manim 是否安装
+      placeholder: macOS 26 · Python 3.11 · manim 0.19 · OpenMAIC :3000
+    validations:
+      required: false

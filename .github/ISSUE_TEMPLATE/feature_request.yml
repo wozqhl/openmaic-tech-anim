@@ -1,0 +1,40 @@
+name: Feature request
+description: 新主题模板、成片质量、Web/CLI 能力等
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题
+      description: 用户场景 / 痛点
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 接口、CLI 参数、模板结构等
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - 低（nice to have）
+        - 中（常用流程）
+        - 高（阻塞迭代）
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 涉及范围
+      options:
+        - label: Manim 精品模板
+        - label: 音画同步 / 字幕
+        - label: OpenMAIC 课堂
+        - label: Web UI
+        - label: 文档 / 示例
+        - label: 性能 / 依赖
