@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>状态机步进 · TechAnim</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a2332; --p:#58c4dd; --s:#83c167; --a:#ffd93d; --m:#8b9bb4; --t:#e8eef7; }
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,"PingFang SC",sans-serif;background:var(--bg);color:var(--t)}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  h1{font-size:1.1rem;margin:0 0 4px} .sub{color:var(--m);font-size:.85rem;margin-bottom:12px}
+  .stage{background:var(--panel);border:1px solid #2a3a52;border-radius:14px;padding:20px;min-height:260px;position:relative}
+  svg{width:100%;height:220px}
+  .node-label{font:600 13px ui-monospace,Menlo,monospace;fill:var(--t)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  button{border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;background:var(--p);color:#06202a}
+  button.secondary{background:#2a3a52;color:var(--t)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .hint{color:var(--m);font-size:.78rem;margin-left:auto}
+  .log{margin-top:10px;background:#0b1018;border:1px solid #243044;border-radius:10px;padding:10px;font:12px ui-monospace,Menlo,monospace;color:var(--m);max-height:100px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>状态机步进仿真</h1>
+  <p class="sub">默认演示连接生命周期。点击「下一步」沿合法边迁移；非法边会闪红提示。</p>
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 800 220"></svg>
+  </div>
+  <div class="controls">
+    <button id="btn-next">下一步</button>
+    <button class="secondary" id="btn-reset">重置</button>
+    <span class="hint" id="hint">当前：CLOSED</span>
+  </div>
+  <div class="log" id="log"></div>
+</div>
+<script>
+(function(){
+  // Configurable graph
+  const states = [
+    {id:'CLOSED', x:80, y:110},
+    {id:'LISTEN', x:220, y:40},
+    {id:'SYN_SENT', x:220, y:180},
+    {id:'SYN_RCVD', x:400, y:40},
+    {id:'ESTAB', x:580, y:110},
+    {id:'TIME_WAIT', x:720, y:110},
+  ];
+  const edges = [
+    {from:'CLOSED', to:'LISTEN', label:'passive open'},
+    {from:'CLOSED', to:'SYN_SENT', label:'active open / SYN'},
+    {from:'LISTEN', to:'SYN_RCVD', label:'recv SYN'},
+    {from:'SYN_SENT', to:'ESTAB', label:'recv SYN-ACK / send ACK'},
+    {from:'SYN_RCVD', to:'ESTAB', label:'recv ACK'},
+    {from:'ESTAB', to:'TIME_WAIT', label:'close'},
+    {from:'TIME_WAIT', to:'CLOSED', label:'timeout 2MSL'},
+  ];
+  // Demo path
+  const path = ['CLOSED','SYN_SENT','ESTAB','TIME_WAIT','CLOSED'];
+  let idx = 0;
+
+  const svg = document.getElementById('svg');
+  const byId = Object.fromEntries(states.map(s=>[s.id,s]));
+
+  function draw(){
+    svg.innerHTML = '';
+    // edges
+    edges.forEach(e=>{
+      const a=byId[e.from], b=byId[e.to];
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+      line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+      line.setAttribute('stroke','#334155'); line.setAttribute('stroke-width','2');
+      line.dataset.edge=e.from+'>'+e.to;
+      svg.appendChild(line);
+    });
+    states.forEach(s=>{
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',s.x); c.setAttribute('cy',s.y); c.setAttribute('r',28);
+      c.setAttribute('fill', s.id===path[idx] ? '#1e3a5f' : '#121a26');
+      c.setAttribute('stroke', s.id===path[idx] ? '#58c4dd' : '#475569');
+      c.setAttribute('stroke-width', s.id===path[idx] ? '3' : '2');
+      c.id='n-'+s.id;
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',s.x); t.setAttribute('y',s.y+4);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('class','node-label');
+      t.textContent=s.id.length>8?s.id.slice(0,8):s.id;
+      g.appendChild(c); g.appendChild(t); svg.appendChild(g);
+    });
+  }
+
+  function log(m){ const d=document.createElement('div'); d.textContent=m; document.getElementById('log').prepend(d); }
+  function hint(){ document.getElementById('hint').textContent='当前：'+path[idx]; }
+
+  function next(){
+    if(idx>=path.length-1){ log('已到路径终点'); return; }
+    const from=path[idx], to=path[idx+1];
+    const ok=edges.some(e=>e.from===from && e.to===to);
+    const line=svg.querySelector('[data-edge="'+from+'>'+to+'"]');
+    if(line){
+      line.setAttribute('stroke', ok?'#83c167':'#ff6b6b');
+      line.setAttribute('stroke-width','3');
+      setTimeout(()=>{ line.setAttribute('stroke','#334155'); line.setAttribute('stroke-width','2'); }, 500);
+    }
+    if(!ok){ log('非法迁移 '+from+' → '+to); return; }
+    idx++;
+    draw(); hint();
+    log(from+' → '+to);
+  }
+
+  function reset(){ idx=0; document.getElementById('log').innerHTML=''; draw(); hint(); log('重置到 CLOSED'); }
+  document.getElementById('btn-next').onclick=next;
+  document.getElementById('btn-reset').onclick=reset;
+  reset();
+})();
+</script>
+</body>
+</html>

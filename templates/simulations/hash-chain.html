@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>哈希链 · TechAnim</title>
+<style>
+  :root{--bg:#0f1419;--panel:#1a2332;--p:#58c4dd;--s:#83c167;--a:#ffd93d;--m:#8b9bb4;--t:#e8eef7;--w:#ff6b6b}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,"PingFang SC",sans-serif;background:var(--bg);color:var(--t)}
+  .wrap{max-width:960px;margin:0 auto;padding:16px}
+  h1{font-size:1.1rem;margin:0 0 4px}.sub{color:var(--m);font-size:.85rem;margin-bottom:12px}
+  .chain{display:flex;gap:10px;overflow-x:auto;padding:16px;background:var(--panel);border-radius:14px;border:1px solid #2a3a52;min-height:160px}
+  .block{min-width:150px;background:#121a26;border:2px solid var(--p);border-radius:10px;padding:10px;font:12px ui-monospace,Menlo,monospace;transition:border-color .2s, box-shadow .2s}
+  .block.bad{border-color:var(--w);box-shadow:0 0 0 3px rgba(255,107,107,.25)}
+  .block .h{color:var(--a);word-break:break-all;font-size:11px}
+  .block .prev{color:var(--m);font-size:10px;margin-top:6px;word-break:break-all}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  button{border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;background:var(--p);color:#06202a}
+  button.secondary{background:#2a3a52;color:var(--t)}
+  button.warn{background:var(--w);color:#1a0505}
+  input{background:#121a26;border:1px solid #2a3a52;border-radius:8px;padding:8px 10px;color:var(--t);min-width:180px}
+  .hint{color:var(--m);font-size:.78rem;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>哈希链式区块</h1>
+  <p class="sub">每次追加把「内容 + 前哈希」混成新哈希。篡改中间块会连锁标红——区块链/Git 历史不可篡改的直觉。</p>
+  <div class="chain" id="chain"></div>
+  <div class="controls">
+    <input id="data" placeholder="区块数据，如 tx:Alice→Bob" value="tx:Alice→Bob" />
+    <button id="btn-add">追加区块</button>
+    <button class="secondary" id="btn-reset">重置创世</button>
+    <button class="warn" id="btn-tamper">篡改第 1 块</button>
+    <span class="hint" id="hint">链有效</span>
+  </div>
+</div>
+<script>
+(function(){
+  // simple hash for demo (not crypto secure)
+  function h(s){
+    let x=2166136261>>>0;
+    for(let i=0;i<s.length;i++){ x^=s.charCodeAt(i); x=Math.imul(x,16777619); }
+    return ('00000000'+(x>>>0).toString(16)).slice(-8);
+  }
+  let blocks=[];
+
+  function render(){
+    const el=document.getElementById('chain');
+    el.innerHTML='';
+    let valid=true, prev='00000000';
+    blocks.forEach((b,i)=>{
+      const expect=h(b.data+'|'+b.prev);
+      const ok=b.hash===expect && b.prev===prev;
+      if(!ok) valid=false;
+      const d=document.createElement('div');
+      d.className='block'+(ok?'':' bad');
+      d.innerHTML=`<div>#${i} ${b.data}</div><div class="h">hash ${b.hash}</div><div class="prev">prev ${b.prev}</div>`;
+      el.appendChild(d);
+      prev=b.hash;
+    });
+    document.getElementById('hint').textContent=valid?'链有效 ✓':'链已损坏 — 后续哈希全部失配';
+    document.getElementById('hint').style.color=valid?'#83c167':'#ff6b6b';
+  }
+
+  function add(data){
+    const prev=blocks.length?blocks[blocks.length-1].hash:'00000000';
+    const hash=h(data+'|'+prev);
+    blocks.push({data, prev, hash});
+    render();
+  }
+  function reset(){ blocks=[]; add('genesis'); }
+
+  document.getElementById('btn-add').onclick=()=>{
+    const v=document.getElementById('data').value.trim()||('tx:'+Date.now());
+    add(v);
+  };
+  document.getElementById('btn-reset').onclick=reset;
+  document.getElementById('btn-tamper').onclick=()=>{
+    if(blocks.length<2){ alert('先追加更多区块'); return; }
+    blocks[1].data='TAMPERED';
+    // keep old hash intentionally → break chain
+    render();
+  };
+  reset();
+})();
+</script>
+</body>
+</html>

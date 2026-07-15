@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>数据流管道 · TechAnim</title>
+<style>
+  :root{--bg:#0f1419;--panel:#1a2332;--p:#58c4dd;--s:#83c167;--a:#ffd93d;--m:#8b9bb4;--t:#e8eef7;--w:#ff6b6b}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,"PingFang SC",sans-serif;background:var(--bg);color:var(--t)}
+  .wrap{max-width:920px;margin:0 auto;padding:16px}
+  h1{font-size:1.1rem;margin:0 0 4px}.sub{color:var(--m);font-size:.85rem;margin-bottom:12px}
+  .stage{background:var(--panel);border:1px solid #2a3a52;border-radius:14px;padding:24px 12px;position:relative;height:200px;overflow:hidden}
+  .pipe{display:flex;align-items:center;justify-content:space-between;height:100%;position:relative;z-index:1}
+  .stage-box{width:120px;height:72px;border-radius:12px;border:2px solid var(--p);background:#121a26;display:flex;align-items:center;justify-content:center;font:600 13px ui-monospace,Menlo,monospace;text-align:center;padding:6px}
+  .stage-box:nth-child(3){border-color:var(--s)}
+  .stage-box:nth-child(5){border-color:var(--a)}
+  .arrow{flex:1;height:2px;background:#334155;position:relative}
+  canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  button{border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;background:var(--p);color:#06202a}
+  button.secondary{background:#2a3a52;color:var(--t)}
+  label{font-size:.8rem;color:var(--m);display:flex;align-items:center;gap:6px}
+  input[type=range]{width:120px}
+  .stats{margin-left:auto;font:12px ui-monospace,Menlo,monospace;color:var(--m)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>数据流管道仿真</h1>
+  <p class="sub">粒子从 Input → Process → Output 流动。调高丢包率观察「半路消失」——适合讲流水线背压、丢包、批处理。</p>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="pipe">
+      <div class="stage-box">Input</div>
+      <div class="arrow"></div>
+      <div class="stage-box">Process</div>
+      <div class="arrow"></div>
+      <div class="stage-box">Output</div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="btn-toggle">启动</button>
+    <button class="secondary" id="btn-clear">清空</button>
+    <label>速率 <input id="speed" type="range" min="1" max="10" value="4" /></label>
+    <label>丢包% <input id="drop" type="range" min="0" max="60" value="10" /></label>
+    <span class="stats" id="stats">in:0 out:0 drop:0</span>
+  </div>
+</div>
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const cv=document.getElementById('cv');
+  const ctx=cv.getContext('2d');
+  let running=false, particles=[], stats={in:0,out:0,drop:0}, raf=0;
+
+  function resize(){
+    cv.width=stage.clientWidth; cv.height=stage.clientHeight;
+  }
+  window.addEventListener('resize', resize); resize();
+
+  function spawn(){
+    const speed=Number(document.getElementById('speed').value);
+    particles.push({
+      x: 40, y: cv.height/2 + (Math.random()-0.5)*20,
+      v: 1.2 + speed*0.35 + Math.random()*0.4,
+      alive:true, color: Math.random()>0.5 ? '#58c4dd' : '#83c167'
+    });
+    stats.in++;
+  }
+
+  function tick(){
+    if(!running) return;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const drop=Number(document.getElementById('drop').value)/100;
+    // mid process zone
+    const mid=cv.width*0.5;
+    if(Math.random()<0.12) spawn();
+    particles.forEach(p=>{
+      if(!p.alive) return;
+      p.x += p.v;
+      // drop chance near process
+      if(p.x>mid-10 && p.x<mid+10 && Math.random()<drop*0.08){
+        p.alive=false; stats.drop++; return;
+      }
+      if(p.x>cv.width-50){ p.alive=false; stats.out++; return; }
+      ctx.beginPath(); ctx.fillStyle=p.color;
+      ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+    });
+    particles=particles.filter(p=>p.alive);
+    document.getElementById('stats').textContent=`in:${stats.in} out:${stats.out} drop:${stats.drop}`;
+    raf=requestAnimationFrame(tick);
+  }
+
+  document.getElementById('btn-toggle').onclick=()=>{
+    running=!running;
+    document.getElementById('btn-toggle').textContent=running?'暂停':'启动';
+    if(running) tick(); else cancelAnimationFrame(raf);
+  };
+  document.getElementById('btn-clear').onclick=()=>{
+    particles=[]; stats={in:0,out:0,drop:0};
+    ctx.clearRect(0,0,cv.width,cv.height);
+    document.getElementById('stats').textContent='in:0 out:0 drop:0';
+  };
+})();
+</script>
+</body>
+</html>

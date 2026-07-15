@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>协议握手仿真 · TechAnim</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2332;
+    --primary: #58c4dd;
+    --secondary: #83c167;
+    --accent: #ffd93d;
+    --warn: #ff6b6b;
+    --muted: #8b9bb4;
+    --text: #e8eef7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: ui-sans-serif, system-ui, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.15rem; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
+  .stage {
+    position: relative; background: var(--panel); border-radius: 14px;
+    border: 1px solid #2a3a52; padding: 20px 16px 48px; min-height: 280px;
+  }
+  .endpoints {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  }
+  .node {
+    width: 160px; background: #121a26; border: 2px solid var(--primary);
+    border-radius: 12px; padding: 12px; text-align: center; transition: border-color .25s, box-shadow .25s;
+  }
+  .node.server { border-color: var(--secondary); }
+  .node.active { box-shadow: 0 0 0 3px rgba(88,196,221,.25); }
+  .node h2 { margin: 0; font-size: .95rem; }
+  .state {
+    margin-top: 8px; font-family: ui-monospace, Menlo, monospace; font-size: .8rem;
+    color: var(--accent); min-height: 1.2em;
+  }
+  .meta { margin-top: 6px; font-size: .72rem; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .wire {
+    flex: 1; position: relative; height: 160px; margin-top: 28px;
+  }
+  .line {
+    position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #334155;
+  }
+  .pkt {
+    position: absolute; left: 0; top: calc(50% - 14px);
+    padding: 4px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+    font-family: ui-monospace, Menlo, monospace; opacity: 0; pointer-events: none;
+    transform: translateX(0); white-space: nowrap;
+  }
+  .pkt.syn { background: #1e3a5f; color: var(--primary); border: 1px solid var(--primary); }
+  .pkt.synack { background: #1f3d2a; color: var(--secondary); border: 1px solid var(--secondary); }
+  .pkt.ack { background: #3d3418; color: var(--accent); border: 1px solid var(--accent); }
+  .log {
+    margin-top: 12px; background: #0b1018; border-radius: 10px; padding: 10px 12px;
+    font-family: ui-monospace, Menlo, monospace; font-size: .75rem; color: var(--muted);
+    max-height: 120px; overflow: auto; border: 1px solid #243044;
+  }
+  .log div { margin: 2px 0; }
+  .log .ok { color: var(--secondary); }
+  .log .info { color: var(--primary); }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center;
+  }
+  button {
+    appearance: none; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+    font-size: .85rem; font-weight: 600; background: var(--primary); color: #06202a;
+  }
+  button.secondary { background: #2a3a52; color: var(--text); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .hint { font-size: .78rem; color: var(--muted); margin-left: auto; }
+  .badge {
+    display: inline-block; font-size: .7rem; padding: 2px 8px; border-radius: 999px;
+    background: #243044; color: var(--muted); margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>TCP 三次握手仿真 <span class="badge" id="step-badge">步骤 0/3</span></h1>
+  <p class="sub">逐步发送报文，观察双方状态与序号确认。Aha：第三次 ACK 让双方都确认「对方也准备好了」。</p>
+  <div class="stage">
+    <div class="endpoints">
+      <div class="node client" id="client">
+        <h2>Client</h2>
+        <div class="state" id="c-state">CLOSED</div>
+        <div class="meta" id="c-meta">ISN: — · ack: —</div>
+      </div>
+      <div class="wire" id="wire">
+        <div class="line"></div>
+        <div class="pkt syn" id="pkt">SYN</div>
+      </div>
+      <div class="node server" id="server">
+        <h2>Server</h2>
+        <div class="state" id="s-state">LISTEN</div>
+        <div class="meta" id="s-meta">ISN: — · ack: —</div>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="btn-step">发送下一步</button>
+    <button class="secondary" id="btn-auto">自动播放</button>
+    <button class="secondary" id="btn-reset">重置</button>
+    <span class="hint" id="hint">准备就绪：点击「发送下一步」发出 SYN</span>
+  </div>
+  <div class="log" id="log"></div>
+</div>
+<script>
+(function () {
+  const clientISN = 1000;
+  const serverISN = 5000;
+  let step = 0;
+  let autoTimer = null;
+
+  const el = (id) => document.getElementById(id);
+  const log = (msg, cls = "info") => {
+    const d = document.createElement("div");
+    d.className = cls;
+    d.textContent = msg;
+    el("log").prepend(d);
+  };
+
+  function setStates(c, s) {
+    el("c-state").textContent = c;
+    el("s-state").textContent = s;
+  }
+  function setMeta(c, s) {
+    el("c-meta").textContent = c;
+    el("s-meta").textContent = s;
+  }
+  function badge() {
+    el("step-badge").textContent = "步骤 " + step + "/3";
+  }
+
+  function animatePacket(label, cls, fromLeft, done) {
+    const p = el("pkt");
+    p.textContent = label;
+    p.className = "pkt " + cls;
+    p.style.opacity = "1";
+    const wire = el("wire");
+    const max = Math.max(40, wire.clientWidth - 80);
+    const start = fromLeft ? 0 : max;
+    const end = fromLeft ? max : 0;
+    p.style.transform = "translateX(" + start + "px)";
+    const t0 = performance.now();
+    const dur = 700;
+    function frame(t) {
+      const k = Math.min(1, (t - t0) / dur);
+      const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      const x = start + (end - start) * ease;
+      p.style.transform = "translateX(" + x + "px)";
+      if (k < 1) requestAnimationFrame(frame);
+      else {
+        p.style.opacity = "0";
+        done && done();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function highlight(side) {
+    el("client").classList.toggle("active", side === "c" || side === "both");
+    el("server").classList.toggle("active", side === "s" || side === "both");
+  }
+
+  function reset() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; el("btn-auto").textContent = "自动播放"; }
+    step = 0;
+    badge();
+    setStates("CLOSED", "LISTEN");
+    setMeta("ISN: — · ack: —", "ISN: — · ack: —");
+    highlight(null);
+    el("btn-step").disabled = false;
+    el("hint").textContent = "准备就绪：点击「发送下一步」发出 SYN";
+    el("log").innerHTML = "";
+    log("仿真重置", "ok");
+  }
+
+  function nextStep() {
+    if (step >= 3) return;
+    el("btn-step").disabled = true;
+    if (step === 0) {
+      highlight("c");
+      setStates("SYN_SENT", "LISTEN");
+      setMeta("ISN: " + clientISN + " · ack: —", "ISN: — · ack: —");
+      el("hint").textContent = "① Client → Server：SYN, seq=" + clientISN;
+      log("→ SYN seq=" + clientISN);
+      animatePacket("SYN seq=" + clientISN, "syn", true, () => {
+        setStates("SYN_SENT", "SYN_RCVD");
+        setMeta("ISN: " + clientISN + " · ack: —", "ISN: " + serverISN + " · ack: " + (clientISN + 1));
+        highlight("s");
+        step = 1;
+        badge();
+        el("btn-step").disabled = false;
+        el("hint").textContent = "下一步：Server 回 SYN-ACK";
+      });
+    } else if (step === 1) {
+      highlight("s");
+      el("hint").textContent = "② Server → Client：SYN-ACK, seq=" + serverISN + ", ack=" + (clientISN + 1);
+      log("← SYN-ACK seq=" + serverISN + " ack=" + (clientISN + 1));
+      animatePacket("SYN-ACK seq=" + serverISN, "synack", false, () => {
+        setStates("ESTABLISHED", "SYN_RCVD");
+        setMeta("ISN: " + clientISN + " · ack: " + (serverISN + 1), "ISN: " + serverISN + " · ack: " + (clientISN + 1));
+        highlight("c");
+        step = 2;
+        badge();
+        el("btn-step").disabled = false;
+        el("hint").textContent = "Aha 将至：Client 还需发 ACK，否则 Server 不知 Client 收到了 SYN-ACK";
+      });
+    } else if (step === 2) {
+      highlight("c");
+      el("hint").textContent = "③ Client → Server：ACK, ack=" + (serverISN + 1);
+      log("→ ACK ack=" + (serverISN + 1));
+      animatePacket("ACK ack=" + (serverISN + 1), "ack", true, () => {
+        setStates("ESTABLISHED", "ESTABLISHED");
+        setMeta("ISN: " + clientISN + " · ack: " + (serverISN + 1), "ISN: " + serverISN + " · ack: " + (clientISN + 1));
+        highlight("both");
+        step = 3;
+        badge();
+        el("btn-step").disabled = true;
+        el("hint").textContent = "连接建立！双方都确认了对方的初始序号与可达性。";
+        log("ESTABLISHED 双方就绪 — 这就是为什么需要第三次握手", "ok");
+      });
+    }
+  }
+
+  el("btn-step").onclick = nextStep;
+  el("btn-reset").onclick = reset;
+  el("btn-auto").onclick = () => {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      el("btn-auto").textContent = "自动播放";
+      return;
+    }
+    el("btn-auto").textContent = "停止";
+    const tick = () => {
+      if (step >= 3) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        el("btn-auto").textContent = "自动播放";
+        return;
+      }
+      if (!el("btn-step").disabled) nextStep();
+    };
+    tick();
+    autoTimer = setInterval(tick, 1200);
+  };
+
+  reset();
+})();
+</script>
+</body>
+</html>

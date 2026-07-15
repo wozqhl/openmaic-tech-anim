@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>并排对比 · TechAnim</title>
+<style>
+  :root{--bg:#0f1419;--panel:#1a2332;--p:#58c4dd;--s:#83c167;--a:#ffd93d;--m:#8b9bb4;--t:#e8eef7;--w:#ff6b6b}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,"PingFang SC",sans-serif;background:var(--bg);color:var(--t)}
+  .wrap{max-width:960px;margin:0 auto;padding:16px}
+  h1{font-size:1.1rem;margin:0 0 4px}.sub{color:var(--m);font-size:.85rem;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:700px){.grid{grid-template-columns:1fr}}
+  .col{background:var(--panel);border:1px solid #2a3a52;border-radius:14px;padding:14px;min-height:220px}
+  .col h2{margin:0 0 10px;font-size:.95rem}
+  .col.left h2{color:var(--p)}.col.right h2{color:var(--s)}
+  .lane{position:relative;height:120px;background:#0b1018;border-radius:10px;overflow:hidden;border:1px solid #243044}
+  .bar{position:absolute;left:8px;right:8px;height:14px;border-radius:4px;opacity:.9}
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  button{border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;background:var(--p);color:#06202a}
+  button.secondary{background:#2a3a52;color:var(--t)}
+  .note{margin-top:10px;font-size:.8rem;color:var(--m)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>机制对比：HTTP/1.1 队头阻塞 vs HTTP/2 多路复用</h1>
+  <p class="sub">播放后观察：左侧一请求阻塞后续；右侧多 stream 并行推进。</p>
+  <div class="grid">
+    <div class="col left">
+      <h2>HTTP/1.1 · 队头阻塞</h2>
+      <div class="lane" id="lane1"></div>
+    </div>
+    <div class="col right">
+      <h2>HTTP/2 · 多路复用</h2>
+      <div class="lane" id="lane2"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="btn-play">播放对比</button>
+    <button class="secondary" id="btn-reset">重置</button>
+  </div>
+  <p class="note" id="note">点击播放开始动画。</p>
+</div>
+<script>
+(function(){
+  const colors=['#58c4dd','#83c167','#ffd93d','#c084fc'];
+  let timers=[];
+
+  function clear(){
+    timers.forEach(clearTimeout); timers=[];
+    ['lane1','lane2'].forEach(id=>document.getElementById(id).innerHTML='');
+    document.getElementById('note').textContent='已重置。';
+  }
+
+  function mkBar(lane, color, top, delay, duration, widthEnd, stall){
+    const b=document.createElement('div');
+    b.className='bar';
+    b.style.top=top+'px'; b.style.background=color; b.style.width='0%';
+    lane.appendChild(b);
+    timers.push(setTimeout(()=>{
+      b.style.transition=`width ${duration}ms linear`;
+      b.style.width=widthEnd;
+      if(stall){
+        timers.push(setTimeout(()=>{ b.style.opacity='.5'; }, duration*0.4));
+      }
+    }, delay));
+  }
+
+  function play(){
+    clear();
+    const l1=document.getElementById('lane1');
+    const l2=document.getElementById('lane2');
+    // H1: sequential - first slow blocks
+    mkBar(l1, colors[0], 18, 100, 2200, '90%', true);
+    mkBar(l1, colors[1], 42, 2400, 800, '70%', false);
+    mkBar(l1, colors[2], 66, 3300, 700, '80%', false);
+    mkBar(l1, colors[3], 90, 4100, 600, '60%', false);
+    // H2: parallel
+    mkBar(l2, colors[0], 18, 100, 1800, '85%', false);
+    mkBar(l2, colors[1], 42, 150, 1200, '75%', false);
+    mkBar(l2, colors[2], 66, 200, 1400, '90%', false);
+    mkBar(l2, colors[3], 90, 180, 1000, '65%', false);
+    document.getElementById('note').textContent='观察：HTTP/1.1 第一条变慢时后续排队；HTTP/2 各 stream 同时前进。';
+  }
+
+  document.getElementById('btn-play').onclick=play;
+  document.getElementById('btn-reset').onclick=clear;
+})();
+</script>
+</body>
+</html>

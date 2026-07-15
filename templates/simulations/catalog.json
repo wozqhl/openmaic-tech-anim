@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "protocol-handshake",
+      "name": "协议握手时序",
+      "tags": ["tcp", "握手", "handshake", "syn", "网络", "三次"],
+      "widgetType": "simulation",
+      "file": "protocol-handshake.html",
+      "description": "客户端/服务端双端状态 + 可逐步发送 SYN/SYN-ACK/ACK，适合 TCP/TLS 握手类讲解"
+    },
+    {
+      "id": "state-machine",
+      "name": "状态机步进",
+      "tags": ["状态机", "fsm", "调度", "生命周期", "状态"],
+      "widgetType": "simulation",
+      "file": "state-machine.html",
+      "description": "节点高亮 + 迁移动画，可自定义状态与边，适合进程/连接生命周期"
+    },
+    {
+      "id": "data-flow",
+      "name": "数据流管道",
+      "tags": ["pipeline", "数据流", "流式", "etl", "mapreduce", "attention"],
+      "widgetType": "simulation",
+      "file": "data-flow.html",
+      "description": "多阶段流水线粒子流动，可调速率与丢包，适合编译/推理/流水线"
+    },
+    {
+      "id": "hash-chain",
+      "name": "哈希链式区块",
+      "tags": ["区块链", "hash", "链式", "merkle", "比特币"],
+      "widgetType": "simulation",
+      "file": "hash-chain.html",
+      "description": "方块追加与哈希联动高亮，适合区块链/Git commit 链"
+    },
+    {
+      "id": "compare-two",
+      "name": "并排对比",
+      "tags": ["对比", "vs", "http1", "http2", "udp", "tcp"],
+      "widgetType": "diagram",
+      "file": "compare-two.html",
+      "description": "左右两列机制对比 + 播放差异动画"
+    }
+  ]
+}

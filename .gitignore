@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Local outputs (generated videos, audio, manim media)
+output/
+media/
+**/partial_movie_files/
+*.mp4
+*.mov
+*.wav
+*.mp3
+!templates/**/*.json
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.hermes/
+
+# Logs / temp
+*.log
+tmp/
+.cache/
